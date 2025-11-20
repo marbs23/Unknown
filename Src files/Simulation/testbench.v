@@ -20,6 +20,11 @@ module testbench;
     reset = 0;
   end
 
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars(0, testbench);
+  end
+
   // generate clock to sequence tests
   always begin
     clk = 1;

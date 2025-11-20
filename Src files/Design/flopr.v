@@ -1,13 +1,11 @@
-module flopr (input  clk, reset,
-               input  [WIDTH-1:0] d, 
-               output [WIDTH-1:0] q);
+module flopenrc #(parameter W=32)(
+    input clk, input reset, input en, input clr,
+    input  [W-1:0] d,
+    output reg [W-1:0] q
+);
 
-  parameter WIDTH = 8;
-
-  reg [WIDTH-1:0] q; 
-
-  always @(posedge clk or posedge reset) begin 
-    if (reset) q <= 0; 
-    else       q <= d; 
-  end
+    always @(posedge clk or posedge reset)
+        if (reset) q <= {W{1'b0}};
+        else if (en) 
+            q <= clr ? {W{1'b0}} : d;
 endmodule

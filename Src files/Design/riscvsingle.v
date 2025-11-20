@@ -1,50 +1,90 @@
-module riscvsingle(input  clk, reset,
-                   output [31:0] PC,
-                   input  [31:0] Instr,
-                   output MemWrite,
-                   output [31:0] DataAdr, 
-                   output [31:0] WriteData,
-                   input  [31:0] ReadData);
-  
-  wire [31:0] ALUResult; 
-  
-  wire       ALUSrc, RegWrite, Jump, Zero; 
-  wire [1:0] ResultSrc, ImmSrc; 
-  wire [2:0] ALUControl; 
-  wire       PCSrc; 
+module riscvpipelined(input  clk, reset,
+                       output [31:0] PC,
+                       input  [31:0] InstrF,
+                       output MemWrite,
+                       output [31:0] DataAdr, 
+                       output [31:0] WriteData,
+                       input  [31:0] ReadData);
+    wire        ALUSrcE, PCSrcE;
+    wire [2:0]  ALUControlE;
+    wire [2:0]  ImmSrcD;
+    wire [1:0]  ResultSrcE, ResultSrcW;
+    wire        RegWriteM, RegWriteW, MemWriteM;
+    wire        ZeroE;
+    wire [4:0]  Rs1D, Rs2D, Rs1E, Rs2E, RdE, RdM, RdW;
+    wire [1:0] ForwardAE, ForwardBE;
+    wire       StallF, StallD, FlushD, FlushE;  
+    wire [31:0] ALUResultM, WriteDataM;                  
+    wire [31:0] InstrD;
 
-  // DataAdr is connected to ALUResult
-  assign DataAdr = ALUResult;
+    controller c(
+        .clk(clk),
+        .reset(reset),
+        .InstrD(InstrD), 
+        .ZeroE(ZeroE),
+        .RegWriteW(RegWriteW),
+        .ResultSrcW(ResultSrcW),
+        .MemWriteM(MemWriteM),
+        .RegWriteM(RegWriteM), 
+        .PCSrcE(PCSrcE),
+        .ImmSrcD(ImmSrcD),
+        .ALUSrcE(ALUSrcE), 
+        .ALUControlE(ALUControlE),
+        .ResultSrcE(ResultSrcE)
+    ); 
 
-  controller c(
-    .op(Instr[6:0]), 
-    .funct3(Instr[14:12]), 
-    .funct7b5(Instr[30]), 
-    .Zero(Zero),
-    .ResultSrc(ResultSrc), 
-    .MemWrite(MemWrite), 
-    .PCSrc(PCSrc),
-    .ALUSrc(ALUSrc), 
-    .RegWrite(RegWrite), 
-    .Jump(Jump),
-    .ImmSrc(ImmSrc), 
-    .ALUControl(ALUControl)
-  ); 
-  
-  datapath dp(
-    .clk(clk), 
-    .reset(reset), 
-    .ResultSrc(ResultSrc), 
-    .PCSrc(PCSrc),
-    .ALUSrc(ALUSrc), 
-    .RegWrite(RegWrite),
-    .ImmSrc(ImmSrc), 
-    .ALUControl(ALUControl),
-    .Zero(Zero), 
-    .PC(PC), 
-    .Instr(Instr),
-    .ALUResult(ALUResult), 
-    .WriteData(WriteData), 
-    .ReadData(ReadData)
-  ); 
+    datapath dp(
+        .clk(clk), 
+        .reset(reset),
+        .PCF(PC),
+        .InstrF(InstrF),
+        .ALUResultM(ALUResultM),
+        .WriteDataM(WriteDataM),
+        .ReadDataM(ReadData),
+        .ALUSrcE(ALUSrcE),
+        .ALUControlE(ALUControlE),
+        .RegWriteW(RegWriteW), 
+        .ResultSrcW(ResultSrcW), 
+        .PCSrcE(PCSrcE),
+        .ImmSrcD(ImmSrcD),
+        .ZeroE(ZeroE), 
+        .StallF(StallF),
+        .StallD(StallD),
+        .FlushD(FlushD),
+        .FlushE(FlushE),
+        .ForwardAE(ForwardAE),
+        .ForwardBE(ForwardBE),
+        .Rs1D(Rs1D),
+        .Rs2D(Rs2D),
+        .Rs1E(Rs1E),
+        .Rs2E(Rs2E),
+        .RdE(RdE),
+        .RdM(RdM),
+        .RdW(RdW),
+        .InstrD(InstrD)       
+    );
+      
+    HazardUnit Hazard(
+        .Rs1D(Rs1D),
+        .Rs2D(Rs2D),
+        .Rs1E(Rs1E),
+        .Rs2E(Rs2E),
+        .RdE(RdE),
+        .RdM(RdM),
+        .RdW(RdW),
+        .PCSrcE(PCSrcE),
+        .ResultSrcE(ResultSrcE),
+        .RegWriteM(RegWriteM),
+        .RegWriteW(RegWriteW),
+        .StallF(StallF),
+        .StallD(StallD),
+        .FlushD(FlushD),
+        .FlushE(FlushE),
+        .ForwardAE(ForwardAE),
+        .ForwardBE(ForwardBE)     
+    );
+    assign MemWrite = MemWriteM;
+    assign DataAdr  = ALUResultM;
+    assign WriteData= WriteDataM;
+   
 endmodule

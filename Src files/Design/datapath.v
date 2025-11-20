@@ -1,88 +1,115 @@
-module datapath(input  clk, reset,
-                input  [1:0]  ResultSrc, 
-                input  PCSrc, ALUSrc,
-                input  RegWrite,
-                input  [1:0]  ImmSrc, 
-                input  [2:0]  ALUControl,
-                output Zero,
-                output [31:0] PC,
-                input  [31:0] Instr,
-                output [31:0] ALUResult, WriteData, 
-                input  [31:0] ReadData);
+module datapath(
+    input  clk, reset,
+    output [31:0] PCF,
+    input  [31:0] InstrF,
+    output [31:0] InstrD,
+    output [31:0] ALUResultM, WriteDataM,
+    input  [31:0] ReadDataM,
+    input         ALUSrcE,  
+    input  [2:0]  ALUControlE,
+    input         RegWriteW,
+    input  [1:0]  ResultSrcW,
+    input         PCSrcE,
+    input         StallF, StallD, FlushD, FlushE, 
+    input  [1:0]  ForwardAE, ForwardBE, 
+    input  [2:0]  ImmSrcD,
+    output        ZeroE,
+    output [4:0]  Rs1D, Rs2D, Rs1E, Rs2E, RdE, RdM, RdW
+);
   
-  localparam WIDTH = 32; // Define a local parameter for bus width
-
-  wire [31:0] PCNext, PCPlus4, PCTarget; 
-  wire [31:0] ImmExt; 
-  wire [31:0] SrcA, SrcB; 
-  wire [31:0] Result; 
-
-  // next PC logic
-  flopr #(WIDTH) pcreg(
+    localparam WIDTH = 32; // Define a local parameter for bus width
+    
+    wire [31:0] PCNext, PCPlus4F, PCTargetE;
+    
+    flopr #(WIDTH) pcreg(
     .clk(clk), 
-    .reset(reset), 
+    .reset(reset),
+    .clr(1'b0),
+    .en(~StallF), 
     .d(PCNext), 
-    .q(PC)
-  ); 
+    .q(PCF)
+    );
+     
+    adder       pcadd4(
+        .a(PCF), 
+        .b({WIDTH{1'b0}} + 4), // Using WIDTH parameter for constant 4
+        .y(PCPlus4F)
+    ); 
 
-  adder       pcadd4(
-    .a(PC), 
-    .b({WIDTH{1'b0}} + 4), // Using WIDTH parameter for constant 4
-    .y(PCPlus4)
-  ); 
+    mux2 #(WIDTH)  pcmux(
+        .d0(PCPlus4), 
+        .d1(PCTargetE), 
+        .s(PCSrcE), 
+        .y(PCNext)
+    );
+    
+    flopenrc pccontrol(
+        .clk(clk),
+        .reset(reset),
+        .en(~StallF),
+        .clr(1'b0),
+        .d({PCF}),
+        .q()
+    );
+    // IM_RF
+    // Aquí está la lógica de la primera fase
 
-  adder       pcaddbranch(
-    .a(PC), 
-    .b(ImmExt), 
-    .y(PCTarget)
-  ); 
-
-  mux2 #(WIDTH)  pcmux(
-    .d0(PCPlus4), 
-    .d1(PCTarget), 
-    .s(PCSrc), 
-    .y(PCNext)
-  ); 
+    wire [31:0] PCD, PCPlus4D;
+    IF_ID #(32+32+32) iftoid (
+        .clk(clk),
+        .reset(reset),
+        .en(~StallD),
+        .clr(FlushD),
+        .d({InstrF, PCF, PCPlus4F}),
+        .q({InstrD, PCD, PCPlus4D})
+    );
+    
+    // RF_EX
+    adder       pcaddbranch(
+        .a(PC), 
+        .b(ImmExt), 
+        .y(PCTarget)
+    );  
  
   // register file logic
-  regfile     rf(
-    .clk(clk), 
-    .we3(RegWrite), 
-    .a1(Instr[19:15]), 
-    .a2(Instr[24:20]), 
-    .a3(Instr[11:7]), 
-    .wd3(Result), 
-    .rd1(SrcA), 
-    .rd2(WriteData)
-  ); 
+    regfile     rf(
+        .clk(clk), 
+        .we3(RegWrite), 
+        .a1(Instr[19:15]), 
+        .a2(Instr[24:20]), 
+        .a3(Instr[11:7]), 
+        .wd3(Result), 
+        .rd1(SrcA), 
+        .rd2(WriteData)
+    ); 
 
-  extend      ext(
-    .instr(Instr[31:7]), 
-    .immsrc(ImmSrc), 
-    .immext(ImmExt)
-  ); 
+    extend      ext(
+        .instr(Instr[31:7]), 
+        .immsrc(ImmSrc), 
+        .immext(ImmExt)
+    ); 
 
   // ALU logic
-  mux2 #(WIDTH)  srcbmux(
-    .d0(WriteData), 
-    .d1(ImmExt), 
-    .s(ALUSrc), 
-    .y(SrcB)
-  ); 
+    mux2 #(WIDTH)  srcbmux(
+        .d0(WriteData), 
+        .d1(ImmExt), 
+        .s(ALUSrc), 
+        .y(SrcB)
+     ); 
 
-  alu         alu(
-    .a(SrcA), 
-    .b(SrcB), 
-    .alucontrol(ALUControl), 
-    .result(ALUResult), 
-    .zero(Zero)
-  ); 
+    alu         alu(
+        .a(SrcA), 
+        .b(SrcB), 
+        .alucontrol(ALUControl), 
+        .result(ALUResult), 
+        .zero(Zero)
+    ); 
 
-  mux3 #(WIDTH)  resultmux(
-    .d0(ALUResult), 
-    .d1(ReadData), 
-    .d2(PCPlus4), 
-    .s(ResultSrc), 
-    .y(Result)
-  ); 
+    mux3 #(WIDTH)  resultmux(
+        .d0(ALUResult), 
+        .d1(ReadData), 
+        .d2(PCPlus4), 
+        .s(ResultSrc), 
+        .y(Result)
+    ); 
 endmodule
