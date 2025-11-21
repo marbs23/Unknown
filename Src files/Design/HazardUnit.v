@@ -15,6 +15,15 @@ module HazardUnit(
         else 
             ForwardAE = 2'b00;
     end
+    
+    always @* begin
+        if ((Rs2E == RdM) && RegWriteM && (Rs2E != 0))
+            ForwardBE = 2'b10;
+        else if ((Rs2E == RdW) && RegWriteW && (Rs2E != 0))
+            ForwardBE = 2'b01;
+        else 
+            ForwardBE = 2'b00;
+    end
     reg lwStall;
     always @* begin
         lwStall = ResultSrcE & ((Rs1D == RdE) | (Rs2D == RdE));
