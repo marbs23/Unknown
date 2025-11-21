@@ -7,7 +7,7 @@ module riscvpipelined(input  clk, reset,
                        input  [31:0] ReadData);
     wire        ALUSrcE, PCSrcE;
     wire [2:0]  ALUControlE;
-    wire [2:0]  ImmSrcD;
+    wire [1:0]  ImmSrcD;
     wire [1:0]  ResultSrcE, ResultSrcW;
     wire        RegWriteM, RegWriteW, MemWriteM;
     wire        ZeroE;
