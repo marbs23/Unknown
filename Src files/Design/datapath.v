@@ -23,7 +23,7 @@ module datapath(
     wire [31:0] InstrE, InstrM, InstrW;
     
     
-    flopr #(32) pcreg(
+    flopenrc #(32) pcreg(
     .clk(clk), 
     .reset(reset),
     .clr(1'b0),
@@ -39,11 +39,12 @@ module datapath(
     ); 
 
     mux2 #(WIDTH)  pcmux(
-        .d0(PCPlus4), 
-        .d1(PCTargetE), 
-        .s(PCSrcE), 
-        .y(PCNext)
+    .d0(PCPlus4F), 
+    .d1(PCTargetE), 
+    .s(PCSrcE), 
+    .y(PCNext)
     );
+
     
     flopenrc pccontrol(
         .clk(clk),
@@ -75,7 +76,7 @@ module datapath(
     assign Rs2D = InstrD[25:20];
     wire [4:0] rdD = InstrD[11:7];
     wire [31:0] RD1D, RD2D;
-    wire ResultW;
+    wire [31:0] ResultW;
     regfile     rf(
         .clk(~clk), 
         .we3(RegWriteW), 
@@ -86,7 +87,7 @@ module datapath(
         .rd1(RD1D), 
         .rd2(RD2D)
     ); 
-    wire instr_ext = InstrD[31:7];
+    wire [24:0] instr_ext = InstrD[31:7];
     wire [31:0] ImmExtD;
     extend      ext(
         .instr(instr_ext), 
@@ -156,13 +157,13 @@ module datapath(
     // MEM_WB
     wire [31:0] PCPlus4W, ALUResultW, ReadDataW;
     MEM_WB #(32+5+32+32+32) memtowb(
-        .clk(clk),
-        .reset(reset),
-        .en(1'b1),
-        .clr(1'b0),
-        .d({AluResultM, RdM, PCPLus4M, ReadDataM, InstrM}),
-        .q({AluResultW, RdW, PCPlus4W, ReadDataW, InstrW})
-    );
+    .clk(clk),
+    .reset(reset),
+    .en(1'b1),
+    .clr(1'b0),
+    .d({ALUResultM, RdM, PCPlus4M, ReadDataM, InstrM}),
+    .q({ALUResultW, RdW, PCPlus4W, ReadDataW, InstrW})
+);
     //WB Final
     mux3 #(WIDTH)  resultmux(
         .d0(ALUResultW), 
