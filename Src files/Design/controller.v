@@ -3,6 +3,7 @@ module controller (
         input reset,
         input [31:0] InstrD, 
         input ZeroE,
+        input FlushE,
         output RegWriteW,
         output [1:0] ResultSrcW,
         output MemWriteM,
@@ -11,7 +12,7 @@ module controller (
         output [1:0] ImmSrcD,
         output ALUSrcE, 
         output [2:0] ALUControlE,
-        output ResultSrcE
+        output [1:0]ResultSrcE
     ); 
     wire [6:0] op = InstrD[6:0];
     wire [2:0] funct3 = InstrD[14:12];
@@ -52,6 +53,7 @@ module controller (
     
     assign PCSrcE = JumpE | (BranchE & ZeroE);
     aludec  ad(
+        .opb5(op[5]),
         .funct3(funct3), 
         .funct7b5(funct7b5), 
         .ALUOp(ALUOp), 
@@ -62,13 +64,14 @@ module controller (
     wire [1:0] ResultSrcM;
     
     flopenrc #(1+2+1) regCtrlEtoMEM (
-    .clk(clk),
-    .reset(reset),
-    .en(1'b1),          // fjdfjdjfa;ojd DUDAAAA
-    .clr(1'b0),       
-    .d({RegWriteD, ResultSrcE, MemWriteE}),
-    .q({RegWriteM, ResultSrcM, MemWriteM})
+        .clk(clk),
+        .reset(reset),
+        .en(1'b1),
+        .clr(1'b0),
+        .d({RegWriteE, ResultSrcE, MemWriteE}),
+        .q({RegWriteM, ResultSrcM, MemWriteM})
     );
+
     
     // MEM_WB
     
