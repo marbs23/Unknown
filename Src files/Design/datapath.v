@@ -55,7 +55,7 @@ module datapath(
         .q()
     );
     // IM_RF
-    // Aqu√≠ est√° la l√≥gica de la primera fase
+    // AquÌ est· la lÛgica de la primera fase
 
     wire [31:0] PCD, PCPlus4D;
     IF_ID #(32+32+32) iftoid (

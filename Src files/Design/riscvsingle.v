@@ -20,6 +20,7 @@ module riscvpipelined(input  clk, reset,
     controller c(
         .clk(clk),
         .reset(reset),
+        .FlushE(FlushE),
         .InstrD(InstrD), 
         .ZeroE(ZeroE),
         .RegWriteW(RegWriteW),
