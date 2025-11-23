@@ -16,7 +16,7 @@ module testbench;
 
   // initialize test
   initial begin
-    reset = 1; # 22
+    reset = 1; # 20
     reset = 0;
   end
 

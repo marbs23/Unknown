@@ -8,7 +8,8 @@ module riscvpipelined(input  clk, reset,
     wire        ALUSrcE, PCSrcE;
     wire [2:0]  ALUControlE;
     wire [1:0]  ImmSrcD;
-    wire [1:0]  ResultSrcE, ResultSrcW;
+    wire  ResultSrcE;
+    wire [1:0] ResultSrcW;
     wire        RegWriteM, RegWriteW, MemWriteM;
     wire        ZeroE;
     wire [4:0]  Rs1D, Rs2D, Rs1E, Rs2E, RdE, RdM, RdW;
@@ -31,7 +32,7 @@ module riscvpipelined(input  clk, reset,
         .ImmSrcD(ImmSrcD),
         .ALUSrcE(ALUSrcE), 
         .ALUControlE(ALUControlE),
-        .ResultSrcE(ResultSrcE)
+        .ResultSrcEb0(ResultSrcE)
     ); 
 
     datapath dp(
@@ -64,7 +65,6 @@ module riscvpipelined(input  clk, reset,
         .RdW(RdW),
         .InstrD(InstrD)       
     );
-    wire ResultSrcEb1 = ResultSrcE[0];  
     HazardUnit Hazard(
         .Rs1D(Rs1D),
         .Rs2D(Rs2D),
@@ -74,7 +74,7 @@ module riscvpipelined(input  clk, reset,
         .RdM(RdM),
         .RdW(RdW),
         .PCSrcE(PCSrcE),
-        .ResultSrcE(ResultSrcEb1),
+        .ResultSrcE(ResultSrcE),
         .RegWriteM(RegWriteM),
         .RegWriteW(RegWriteW),
         .StallF(StallF),

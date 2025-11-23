@@ -65,14 +65,17 @@ module datapath(
   
     assign Rs1D = InstrD[19:15];
     assign Rs2D = InstrD[24:20];
+    wire [4:0] A1 = InstrD[19:15];
+    wire [4:0] A2 = InstrD[24:20];
     wire [4:0] RdD = InstrD[11:7];
-    wire [31:0] RD1D, RD2D;
+    wire [31:0] RD1D;
+    wire [31:0] RD2D;
     wire [31:0] ResultW;
     regfile     rf(
         .clk(~clk), 
         .we3(RegWriteW), 
-        .a1(InstrD[19:15]), 
-        .a2(InstrD[24:20]), 
+        .a1(A1), 
+        .a2(A2), 
         .a3(RdW), 
         .wd3(ResultW), 
         .rd1(RD1D), 

@@ -12,7 +12,7 @@ module controller (
         output [1:0] ImmSrcD,
         output ALUSrcE, 
         output [2:0] ALUControlE,
-        output [1:0]ResultSrcE
+        output ResultSrcEb0
     ); 
     wire [6:0] op = InstrD[6:0];
     wire [2:0] funct3 = InstrD[14:12];
@@ -21,10 +21,12 @@ module controller (
     wire ALUSrcD;
     wire RegWriteD;
     wire JumpD;
-    wire [1:0] ALUOp;
+    wire [1:0] ALUOp; 
     wire [1:0] ResultSrcD;
+    wire [1:0] ResultSrcE;
     wire MemWriteD;
     wire [2:0] ALUControlD;
+    
     
     maindec md(
         .op(op), 
@@ -51,14 +53,14 @@ module controller (
     .q({RegWriteE, ResultSrcE, MemWriteE, JumpE, BranchE, ALUControlE, ALUSrcE})
     );
     
-    assign PCSrcE = JumpE | (BranchE & ZeroE);
+    assign PCSrcE = (JumpE) | (BranchE & ZeroE);
     wire opb5 = op[5];
     aludec  ad(
         .opb5(opb5),
         .funct3(funct3), 
         .funct7b5(funct7b5), 
         .ALUOp(ALUOp), 
-        .ALUControl(ALUControlE)
+        .ALUControl(ALUControlD)
     );
     
     // EX_MEM
@@ -73,7 +75,8 @@ module controller (
         .q({RegWriteM, ResultSrcM, MemWriteM})
     );
 
-    
+    assign ResultSrcEb0 = ResultSrcE[0];
+
     // MEM_WB
     
     flopenrc #(1+2) regCtrlMEMtoWB (
@@ -84,7 +87,6 @@ module controller (
     .d({RegWriteM, ResultSrcM}),
     .q({RegWriteW, ResultSrcW})
     ); 
-    
     
 
 endmodule
