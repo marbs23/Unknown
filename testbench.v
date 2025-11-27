@@ -33,7 +33,8 @@ module testbench;
 
   // check results
   integer cycle = 0;
-  always @(negedge clk) begin
+  always @(posedge clk) begin
+    if (reset) cycle = 0;
     cycle = cycle + 1;
     if (cycle == 200) begin   // por ejemplo 200 ciclos
       $display("Fin de simulaci�n (%0d ciclos)", cycle);
