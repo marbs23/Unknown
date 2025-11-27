@@ -75,7 +75,7 @@ module datapath(
     wire [31:0] RD2D;
     wire [31:0] ResultW;
     regfile     rf(
-        .clk(clk), 
+        .clk(~clk), 
         .we3(RegWriteW), 
         .a1(A1), 
         .a2(A2), 
