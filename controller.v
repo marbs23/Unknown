@@ -13,8 +13,8 @@ module controller (
         output ALUSrcE, 
         output [2:0] ALUControlE,
         output [1:0] ResultSrcE,
-        output IsFpD, // new
-        output [1:0] FpOpD // new
+        output IsFpD,
+        output [1:0] FpOpD
     ); 
     
     wire [6:0] op = InstrD[6:0];
@@ -31,13 +31,14 @@ module controller (
     wire [2:0] ALUControlD;
     wire [6:0] funct7 = InstrD[31:25];
     
-assign FpOpD =
-    (!IsFpD) ? 2'b00 :
-    (funct7 == 7'b0000000) ? 2'b00 :
-    (funct7 == 7'b0100000) ? 2'b01 : 
-    (funct7 == 7'b0000001) ? 2'b10 :  
-    (funct7 == 7'b0001100) ? 2'b11 :  
-    2'b00;
+    // ⭐ CORRECCIÓN: Los valores correctos de funct7 según RISC-V spec
+    assign FpOpD =
+        (!IsFpD) ? 2'b00 :
+        (funct7 == 7'b0000000) ? 2'b00 :  // FADD.S  (0x00)
+        (funct7 == 7'b0000100) ? 2'b01 :  // FSUB.S  (0x04) ← CORREGIDO
+        (funct7 == 7'b0001000) ? 2'b10 :  // FMUL.S  (0x08) ← CORREGIDO
+        (funct7 == 7'b0001100) ? 2'b11 :  // FDIV.S  (0x0C)
+        2'b00;
     
     maindec md(
         .op(op), 
@@ -53,7 +54,6 @@ assign FpOpD =
     
     // ID_EX
     wire RegWriteE, MemWriteE, JumpE, BranchE;
-    // ⭐ NOTA: ResultSrcE ahora se declara implícitamente como output [1:0]
     
     flopenrc #(1+2+1+1+1+3+1) regCtrlDtoE (
         .clk(clk),
@@ -86,9 +86,6 @@ assign FpOpD =
         .d({RegWriteE, ResultSrcE, MemWriteE}),
         .q({RegWriteM, ResultSrcM, MemWriteM})
     );
-    
-    // ⭐ CAMBIO 2: ELIMINAR esta línea
-    // assign ResultSrcEb0 = ResultSrcE[0];  // ❌ YA NO SE NECESITA
     
     // MEM_WB
     flopenrc #(1+2) regCtrlMEMtoWB (
