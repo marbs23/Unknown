@@ -1,5 +1,4 @@
-
-module FP_ALU_if (
+module alu_fp (
     input  [31:0] op_a, op_b,
     input  [1:0]  op_code,        
     input         clk, rst,
@@ -28,7 +27,6 @@ module FP_ALU_if (
     reg [47:0] product;
     reg [22:0] frac_mul;
     reg did_round;
-
 
     always @(*) begin
         result     = 32'b0;
@@ -66,12 +64,13 @@ module FP_ALU_if (
         end
 
         case (op_code)
- 
+        // ========================================
+        // SUMA Y RESTA
+        // ========================================
         2'b00, 2'b01: begin
-
             if (a_is_nan || b_is_nan) begin
                 result = mode_fp ? {16'b0, 16'h7E00} : 32'h7FC00000;
-                flags[4] = 1'b1; // invalid
+                flags[4] = 1'b1;
             end else if (a_is_inf && b_is_inf && (sign_a != (op_code==2'b01 ? ~sign_b : sign_b))) begin
                 result = mode_fp ? {16'b0, 16'h7E00} : 32'h7FC00000;
                 flags[4] = 1'b1;
@@ -117,7 +116,7 @@ module FP_ALU_if (
 
                 flags[2] = (exp_res > exp_max_sel);
                 flags[1] = (exp_res < exp_min_sel);
-                flags[0] = did_round | guard_bit;  
+                flags[0] = did_round | guard_bit;
 
                 if (flags[2])
                     result = mode_fp ? {16'b0, sign_res, 5'h1F, 10'd0} : {sign_res, 8'hFF, 23'd0};
@@ -130,10 +129,10 @@ module FP_ALU_if (
             end
         end
 
-   
+        // ========================================
+        // MULTIPLICACIÓN (CORREGIDA)
+        // ========================================
         2'b10: begin
-           
-
             if (a_is_nan || b_is_nan || (a_is_inf && b_is_zero) || (b_is_inf && a_is_zero)) begin
                 result = mode_fp ? {16'b0, 16'h7E00} : 32'h7FC00000;
                 flags[4] = 1'b1;
@@ -147,18 +146,29 @@ module FP_ALU_if (
                 product = mant_a * mant_b;
                 exp_res = exp_a + exp_b - bias_sel;
 
+                // Normalizar: producto puede estar en bit[47] o bit[46]
                 if (product[47]) begin
-                    product = product >> 1;
+                    // Producto normalizado en bit 47
+                    // Mantisa está en bits [46:24], tomamos [46:24] = 23 bits
+                    frac_mul = product[46:24];
+                    lsb_bit = product[24];
+                    guard_bit = product[23];
+                    sticky_bit = |product[22:0];
                     exp_res = exp_res + 1;
+                end else begin
+                    // Producto normalizado en bit 46
+                    // Mantisa está en bits [45:23], tomamos [45:23] = 23 bits
+                    frac_mul = product[45:23];
+                    lsb_bit = product[23];
+                    guard_bit = product[22];
+                    sticky_bit = |product[21:0];
                 end
 
-                frac_mul = product[45:23];
-                lsb_bit = product[23];
-                guard_bit = product[22];
-                sticky_bit = |product[21:0];
+                // Round to nearest, ties to even
                 round_inc = guard_bit & (sticky_bit | lsb_bit);
                 frac_round = {1'b0, frac_mul} + round_inc;
 
+                // Si hay overflow en el redondeo
                 if (frac_round[23]) begin
                     frac_round = frac_round >> 1;
                     exp_res = exp_res + 1;
@@ -168,7 +178,7 @@ module FP_ALU_if (
                 underflow = (exp_res < exp_min_sel);
                 flags[2] = overflow;
                 flags[1] = underflow;
-                flags[0] = round_inc;
+                flags[0] = round_inc | guard_bit | sticky_bit;
 
                 if (overflow)
                     result = mode_fp ? {16'b0, sign_res, 5'h1F, 10'd0} : {sign_res, 8'hFF, 23'd0};
@@ -181,10 +191,10 @@ module FP_ALU_if (
             end
         end
 
-
+        // ========================================
+        // DIVISIÓN (CORREGIDA)
+        // ========================================
         2'b11: begin
-           
-
             if (a_is_nan || b_is_nan) begin
                 result = mode_fp ? {16'b0, 16'h7E00} : 32'h7FC00000;
                 flags[4] = 1'b1;
@@ -192,30 +202,48 @@ module FP_ALU_if (
                 result = mode_fp ? {16'b0, 16'h7E00} : 32'h7FC00000;
                 flags[4] = 1'b1;
             end else if (b_is_zero) begin
-                flags[3] = 1'b1; // div0
+                flags[3] = 1'b1;
                 result = mode_fp ? {16'b0, sign_a ^ sign_b, 5'h1F, 10'd0} : {sign_a ^ sign_b, 8'hFF, 23'd0};
+            end else if (a_is_zero) begin
+                result = {sign_a ^ sign_b, 31'd0};
+            end else if (a_is_inf) begin
+                sign_res = sign_a ^ sign_b;
+                result = mode_fp ? {16'b0, sign_res, 5'h1F, 10'd0} : {sign_res, 8'hFF, 23'd0};
             end else begin
                 sign_res = sign_a ^ sign_b;
+                
+                // División: {mant_a, 24'b0} / mant_b
                 div_numer = {mant_a, 24'b0};
                 q = div_numer / mant_b;
                 remainder = div_numer % mant_b;
+                
+                // Ajustar exponente
                 exp_res = (exp_a - exp_b) + bias_sel;
 
-                if (q[25]) begin
-                    q = q >> 1;
-                    exp_res = exp_res + 1;
-                end else if (!q[24]) begin
+                // Normalizar el cociente
+                // El cociente puede estar en bit[24] o bit[23]
+                if (q[24]) begin
+                    // Cociente en bit 24, ya normalizado
+                    // Tomar bits [23:1] como fracción
+                    frac_div = q[23:1];
+                    lsb_bit = q[1];
+                    guard_bit = q[0];
+                    sticky_bit = (remainder != 0);
+                end else begin
+                    // Cociente en bit 23 o menor, desplazar
                     q = q << 1;
                     exp_res = exp_res - 1;
+                    frac_div = q[23:1];
+                    lsb_bit = q[1];
+                    guard_bit = q[0];
+                    sticky_bit = (remainder != 0);
                 end
 
-                frac_div = q[23:1];
-                lsb_bit = q[1];
-                guard_bit = q[0];
-                sticky_bit = (remainder != 0);
+                // Round to nearest, ties to even
                 round_inc = guard_bit & (sticky_bit | lsb_bit);
                 frac_round = {1'b0, frac_div} + round_inc;
 
+                // Si hay overflow en el redondeo
                 if (frac_round[23]) begin
                     frac_round = frac_round >> 1;
                     exp_res = exp_res + 1;

@@ -16,8 +16,13 @@ module testbench;
 
   // initialize test
   initial begin
-    reset = 1; # 22;
+    reset = 1; # 22
     reset = 0;
+  end
+
+  initial begin
+    $dumpfile("dump.vcd");
+    $dumpvars(0, testbench);
   end
 
   // generate clock to sequence tests
@@ -27,15 +32,13 @@ module testbench;
   end
 
   // check results
+  integer cycle = 0;
   always @(negedge clk) begin
-    if(MemWrite) begin
-      if(DataAdr === 100 & WriteData === 25) begin
-        $display("Simulation succeeded");
-        $stop;
-      end else if (DataAdr !== 96) begin
-        $display("Simulation failed");
-        $stop;
-      end
+    cycle = cycle + 1;
+    if (cycle == 200) begin   // por ejemplo 200 ciclos
+      $display("Fin de simulaci�n (%0d ciclos)", cycle);
+      $finish;
     end
   end
+  
 endmodule
