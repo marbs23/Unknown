@@ -6,18 +6,21 @@ module riscvpipelined(input  clk, reset,
                        output [31:0] WriteData,
                        input  [31:0] ReadData);
     wire        ALUSrcE, PCSrcE;
-    wire IsFpD;
-    wire [1:0] FpOpD;
-    wire IsFpE;
+    wire        IsFpD;
+    wire [1:0]  FpOpD;
+    wire        IsFpE;
+    wire        JalrE;
     wire [2:0]  ALUControlE;
     wire [1:0]  ImmSrcD;
-    wire [1:0]  ResultSrcE;     // ⭐ CAMBIO 1: De wire a wire [1:0]
-    wire [1:0] ResultSrcW;
+    wire [1:0]  ResultSrcE;
+    wire [1:0]  ResultSrcW;
     wire        RegWriteM, RegWriteW, MemWriteM;
     wire        ZeroE;
+    wire        LtE;       // ← 🆕 Less Than
+    wire [2:0]  Funct3E;   // ← 🆕 Tipo de branch
     wire [4:0]  Rs1D, Rs2D, Rs1E, Rs2E, RdE, RdM, RdW;
-    wire [1:0] ForwardAE, ForwardBE;
-    wire       StallF, StallD, FlushD, FlushE;  
+    wire [1:0]  ForwardAE, ForwardBE;
+    wire        StallF, StallD, FlushD, FlushE;  
     wire [31:0] ALUResultM, WriteDataM;                  
     wire [31:0] InstrD;
     
@@ -27,6 +30,7 @@ module riscvpipelined(input  clk, reset,
         .FlushE(FlushE),
         .InstrD(InstrD), 
         .ZeroE(ZeroE),
+        .LtE(LtE),         // ← 🆕 Conectar LtE
         .RegWriteW(RegWriteW),
         .ResultSrcW(ResultSrcW),
         .MemWriteM(MemWriteM),
@@ -35,9 +39,11 @@ module riscvpipelined(input  clk, reset,
         .ImmSrcD(ImmSrcD),
         .ALUSrcE(ALUSrcE), 
         .ALUControlE(ALUControlE),
-        .ResultSrcE(ResultSrcE),    // ⭐ CAMBIO 2: De .ResultSrcEb0 a .ResultSrcE
+        .ResultSrcE(ResultSrcE),
         .IsFpD(IsFpD),
-        .FpOpD(FpOpD)
+        .FpOpD(FpOpD),
+        .JalrE(JalrE),
+        .Funct3E(Funct3E)  // ← 🆕 Conectar Funct3E
     ); 
     
     datapath dp(
@@ -54,7 +60,8 @@ module riscvpipelined(input  clk, reset,
         .ResultSrcW(ResultSrcW), 
         .PCSrcE(PCSrcE),
         .ImmSrcD(ImmSrcD),
-        .ZeroE(ZeroE), 
+        .ZeroE(ZeroE),
+        .LtE(LtE),         // ← 🆕 Conectar LtE
         .StallF(StallF),
         .StallD(StallD),
         .FlushD(FlushD),
@@ -71,7 +78,9 @@ module riscvpipelined(input  clk, reset,
         .InstrD(InstrD),
         .IsFpD(IsFpD),
         .FpOpD(FpOpD),
-        .IsFpE(IsFpE)     
+        .IsFpE(IsFpE),
+        .JalrE(JalrE),
+        .Funct3E(Funct3E)  // ← 🆕 Conectar Funct3E
     );
     
     HazardUnit Hazard(

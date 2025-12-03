@@ -1,7 +1,8 @@
 module alu(input  [31:0] a, b,
            input  [2:0]  alucontrol,
            output [31:0] result,
-           output zero);
+           output zero,
+           output lt);      // ← 🆕 Less Than (a < b)
   
   wire [31:0] condinvb, sum; 
   wire        v; // overflow
@@ -16,18 +17,24 @@ module alu(input  [31:0] a, b,
                     ~alucontrol[1] & alucontrol[0]; 
 
   always @* case (alucontrol)
-      3'b000:  result_reg = sum; // add
-      3'b001:  result_reg = sum; // subtract
-      3'b010:  result_reg = a & b; // and
-      3'b011:  result_reg = a | b; // or
-      3'b100:  result_reg = a ^ b; // xor
+      3'b000:  result_reg = sum;         // add
+      3'b001:  result_reg = sum;         // subtract
+      3'b010:  result_reg = a & b;       // and
+      3'b011:  result_reg = a | b;       // or
+      3'b100:  result_reg = a * b;       // mul
       3'b101:  result_reg = sum[31] ^ v; // slt
       3'b110:  result_reg = a << b[4:0]; // sll
       3'b111:  result_reg = a >> b[4:0]; // srl
       default: result_reg = 32'bx;
     endcase
 
-  assign zero = (result == 32'b0); 
+  assign zero = (result == 32'b0);
+  
+  // ← 🆕 Comparación con signo: a < b
+  // Si los signos son diferentes, el negativo es menor
+  // Si los signos son iguales, usar el bit de signo del resultado
+  assign lt = (a[31] != b[31]) ? a[31] : sum[31];
+  
   assign v = ~(alucontrol[0] ^ a[31] ^ b[31]) & (a[31] ^ sum[31]) & isAddSub; 
   
 endmodule

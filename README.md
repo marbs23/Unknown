@@ -645,3 +645,29 @@ Developed as part of a Computer Architecture course project.
 ---
 
 **⭐ If you find this project useful, please consider giving it a star!**
+
+
+## Unknown layout to .txt
+To do some FP and ALU-RBA
+            f7     rs2  rs1  f3   rd     op
+404000B7 0100000 00100 00000 000 00001 0110111 lui
+40000137 0100000 00000 00000 000 00010 0110111 lui
+00210253 0000000 00010 00001 000 00100 1010011 fadd
+082082D3 0000100 00010 00001 000 00101 1010011 fsub
+10208353 0001000 00010 00001 000 00110 1010011 fmul
+182083D3 0001100 00010 00001 000 00111 1010011 fdiv
+
+404000B7  ->  lui x1, 0x40400  (x1 = 3.0)
+40000137  ->  lui x2, 0x40000  (x2 = 2.0)
+00012003  ->  lw x2, 0(x2)
+00208253  ->  fadd x4, x1, x2  (x4 = 3+2)
+082082D3  ->  fsub x5, x1, x2  (x5 = 3-2)
+10208353  ->  fmul x6, x1, x2  (x6 = 3*2)
+182083D3  ->  fdiv x7, x1, x2  (x7 = 3/2)
+
+40A002B7 => lui x5, 0x40A00
+00028293 => addi x5, x5, 0
+00000393 => li x7, 256
+0053A023 => sw x5, 0(x7)
+0003A403 => lw x8, 0(x7)
+005404D3 => fadd x9, x8, x5
