@@ -1,0 +1,72 @@
+# Código hexadecimal final para la multiplicación de matrices en RISC-V
+# Proporcionado por Jules, Ingeniero de Software
+
+# --- Sección de Inicialización (código original del usuario) ---
+00001137
+FE010113
+00000537
+00050513
+3F800337
+00652023
+40000337
+00652223
+40000337
+00652423
+40400337
+00652623
+01000593
+40000337
+0065A023
+40400337
+0065A223
+3F800337
+0065A423
+3F800337
+0065A623
+02000613
+00000337
+00662023
+00662223
+00662423
+00662623
+
+# --- Inicio de la multiplicación de matrices desenrollada (unrolled) ---
+# Cálculo de C[0][0]
+00052287
+0005A307
+106283D3
+00452287
+0085A307
+10628453
+008384D3
+00962023
+# Cálculo de C[0][1]
+00052287
+0045A307
+106283D3
+00452287
+00C5A307
+10628453
+008384D3
+00962223
+# Cálculo de C[1][0]
+00852287
+0005A307
+106283D3
+00C52287
+0085A307
+10628453
+008384D3
+00962423
+# Cálculo de C[1][1]
+00852287
+0045A307
+106283D3
+00C52287
+00C5A307
+10628453
+008384D3
+00962623
+
+# --- Fin del programa, bucle infinito para detener el procesador ---
+0000006F
